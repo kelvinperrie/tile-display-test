@@ -63,20 +63,22 @@
             self.rows = [];
             self.tileHeight = 40;
             self.tileWidth = 30;
-            self.startDrawingY = 0;
+            self.startDrawingY = 0;     // the coordinates on the canvas
             self.startDrawingX = 0;
-            self.tilesToDrawFromX = 0;
+            self.tilesToDrawFromX = 0;  // how many tiles between the edge and the center
             self.tilesToDrawFromY = 0;
             self.totalTilesInX = 0;
             self.totalTilesInY = 0;
             self.currentX = 20;
-            self.currentY = 20;
+            self.currentY = 3;
+            self.maxX = 50;
+            self.maxY = 50;
 
             self.GenerateTiles = function() {
-                for(let y = 0; y < 50; y++) {
+                for(let y = 0; y < self.maxY; y++) {
                     let col = [];
 
-                    for(let x = 0; x < 50; x++) {
+                    for(let x = 0; x < self.maxX; x++) {
                         let tile = new TileModel(x,y);
                         col.push(tile);
                     }
@@ -84,8 +86,14 @@
                 }
             };
 
-            self.GetTileAt = function(relativeX,relativeY) {
-
+            self.GetTileAt = function(tileX,tileY) {
+                if(tileX < 0 || tileX >= self.maxX) {
+                    return null;
+                }
+                if(tileY < 0 || tileY >= self.maxY) {
+                    return null;
+                }
+                return self.rows[tileY][tileX];
             }
 
             self.DrawLoop = function() {
@@ -97,8 +105,8 @@
                 // self.ctx.rect(20, 20, 100, 100);
                 // self.ctx.stroke();
 
-                var startDrawingFromTileX = self.currentX - self.tilesToDrawFromX;
-                var startDrawingFromTileY = self.currentY - self.tilesToDrawFromY;
+                let startDrawingFromTileX = self.currentX - self.tilesToDrawFromX;
+                let startDrawingFromTileY = self.currentY - self.tilesToDrawFromY;
 
                 for(let y = 0; y < self.totalTilesInY; y++) {
                     //console.log("drawing y of "+y)
@@ -113,7 +121,16 @@
                         var drawAtX = self.startDrawingX + (x * self.tileWidth);
                         var drawAtY = self.startDrawingY + (y * self.tileHeight);
 
-                        var tileToDraw = self.GetTileAt(x,y);
+                        var tileToDraw = self.GetTileAt(startDrawingFromTileX+x,startDrawingFromTileY+y);
+                        if(tileToDraw) {
+                            self.ctx.textBaseline = "hanging";
+                            self.ctx.fillText((startDrawingFromTileX+x)+','+(startDrawingFromTileY+y), drawAtX, drawAtY);
+                            console.log("got a tile at " + (startDrawingFromTileX+x) + "," + (startDrawingFromTileY+y));
+                        } else {
+                            console.log("no tile at " + (startDrawingFromTileX+x) + "," + (startDrawingFromTileY+y));
+                            self.ctx.fillStyle = 'black';
+                            self.ctx.fillRect(drawAtX, drawAtY, self.tileWidth, self.tileHeight);
+                        }
 
                         //console.log("x = " + drawAtX + ", y = " + drawAtY)
                         self.ctx.rect(drawAtX, drawAtY, self.tileWidth, self.tileHeight);
@@ -122,6 +139,7 @@
                     }
                     
                 }
+
 
                 setTimeout(function() { self.DrawLoop() }, 100);
             };
