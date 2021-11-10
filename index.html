@@ -42,16 +42,16 @@
 
             self.image = null;
 
-            var random = randomIntFromInterval(1,20);
-            if(random == 1) {
-                self.image = "brick01.png";
-            }
-            else if(random == 2) {
-                self.image = "pavement02.png";
-            }
-            else {
-                self.image = "pavement01.png";
-            }
+            // var random = randomIntFromInterval(1,20);
+            // if(random == 1) {
+            //     self.image = "brick01.png";
+            // }
+            // else if(random == 2) {
+            //     self.image = "pavement02.png";
+            // }
+            // else {
+            //     self.image = "pavement01.png";
+            // }
         };
 
         var TilesModel = function() {
@@ -59,6 +59,8 @@
 
             self.canvas = document.getElementById('canvas');
             self.ctx = self.canvas.getContext('2d');
+            self.loader = null;         // loaded images
+            self.images = [];
 
             self.rows = [];
             self.tileHeight = 40;
@@ -71,8 +73,8 @@
             self.totalTilesInY = 0;
             self.currentX = 20;
             self.currentY = 3;
-            self.maxX = 50;
-            self.maxY = 50;
+            self.maxX = 1000;
+            self.maxY = 1000;
 
             self.GenerateTiles = function() {
                 for(let y = 0; y < self.maxY; y++) {
@@ -84,6 +86,8 @@
                     }
                     self.rows.push(col);
                 }
+                self.rows[0][0].image = "brick01.png";
+                self.rows[5][19].image = "brick01.png";
             };
 
             self.GetTileAt = function(tileX,tileY) {
@@ -96,9 +100,33 @@
                 return self.rows[tileY][tileX];
             }
 
+            self.LoadImages = function(arr, callback) {
+                //this.images = {};
+                var loadedImageCount = 0;
+
+                // Make sure arr is actually an array and any other error checking
+                for (var i = 0; i < arr.length; i++){
+                    var img = new Image();
+                    img.onload = imageLoaded;
+                    img.src = arr[i];
+                    //this.images[arr[i]] = img;
+                    self.images.push(img);
+                }
+
+                function imageLoaded(e) {
+                    loadedImageCount++;
+                    if (loadedImageCount >= arr.length) {
+                        callback();
+                    }
+                }
+            };
+
+            
+
             self.DrawLoop = function() {
-                
-                self.ctx.clearRect(0, 0, self.ctx.width, self.ctx.height);
+                console.log("starting draw loop")
+                self.ctx.fillStyle = 'white';
+                self.ctx.fillRect(0, 0, self.canvasWidth, self.canvasHeight);
 
                 // self.ctx.beginPath();
                 // self.ctx.strokeStyle = "#ff0000";
@@ -108,40 +136,54 @@
                 let startDrawingFromTileX = self.currentX - self.tilesToDrawFromX;
                 let startDrawingFromTileY = self.currentY - self.tilesToDrawFromY;
 
+                // var img = new Image();
+                // img.src = 'images/brick01.png';
+                // img.load(function() {
+                //     console.log('Image Loaded');
+                // });
+
+                self.ctx.save();
+                self.ctx.beginPath();
+                self.ctx.strokeStyle = "#ff0000";
+                self.ctx.fillStyle = 'black';
                 for(let y = 0; y < self.totalTilesInY; y++) {
                     //console.log("drawing y of "+y)
 
                     for(let x = 0; x < self.totalTilesInX; x++) {
                         
                         //console.log("drawing x,y of "+x+","+y);
-                        self.ctx.save();
-                        self.ctx.beginPath();
-                        self.ctx.strokeStyle = "#ff0000";
+
 
                         var drawAtX = self.startDrawingX + (x * self.tileWidth);
                         var drawAtY = self.startDrawingY + (y * self.tileHeight);
 
+                        //console.log("x = " + drawAtX + ", y = " + drawAtY)
+                        self.ctx.rect(drawAtX, drawAtY, self.tileWidth, self.tileHeight);
+
                         var tileToDraw = self.GetTileAt(startDrawingFromTileX+x,startDrawingFromTileY+y);
                         if(tileToDraw) {
+                            if(tileToDraw.image) {
+                                //console.log("drawing image " + tileToDraw.image + " at " + (drawAtX) + "," + (drawAtY))
+                                self.ctx.drawImage(self.images[0], drawAtX, drawAtY);
+                            }
                             self.ctx.textBaseline = "hanging";
                             self.ctx.fillText((startDrawingFromTileX+x)+','+(startDrawingFromTileY+y), drawAtX, drawAtY);
-                            console.log("got a tile at " + (startDrawingFromTileX+x) + "," + (startDrawingFromTileY+y));
+                            //console.log("got a tile at " + (startDrawingFromTileX+x) + "," + (startDrawingFromTileY+y));
                         } else {
-                            console.log("no tile at " + (startDrawingFromTileX+x) + "," + (startDrawingFromTileY+y));
-                            self.ctx.fillStyle = 'black';
+                            //console.log("no tile at " + (startDrawingFromTileX+x) + "," + (startDrawingFromTileY+y));
                             self.ctx.fillRect(drawAtX, drawAtY, self.tileWidth, self.tileHeight);
                         }
 
-                        //console.log("x = " + drawAtX + ", y = " + drawAtY)
-                        self.ctx.rect(drawAtX, drawAtY, self.tileWidth, self.tileHeight);
-                        self.ctx.stroke();
-                        self.ctx.restore();
+
                     }
                     
                 }
+                self.ctx.stroke();
+                self.ctx.restore();
+                console.log("ended draw loop")
 
-
-                setTimeout(function() { self.DrawLoop() }, 100);
+                window.requestAnimationFrame(self.DrawLoop);
+                //setTimeout(function() { self.DrawLoop() }, 100);
             };
 
             self.ResizeHandler = function() {
@@ -155,6 +197,8 @@
                 // get the map size
                 var width = document.getElementById('canvas').offsetWidth;
                 var height = document.getElementById('canvas').offsetHeight;
+                self.canvasWidth = width;
+                self.canvasHeight = height;
                 console.log("width by height is " + width + " by " + height);
                 // how many tiles wide/high is our canvas?
                 var tilesInWidth = Math.ceil(width / self.tileWidth);
@@ -189,7 +233,12 @@
                 self.GenerateTiles();
                 // figure out how many etc tiles we are drawing
                 self.CalculateDrawSizes();
-                self.DrawLoop();
+                //window.requestAnimationFrame(self.DrawLoop());
+                //self.DrawLoop();
+                self.loader = self.LoadImages(['images/brick01.png'], function() {
+                    //self.DrawLoop();
+                    window.requestAnimationFrame(self.DrawLoop);
+                });
             };
             self.Initialize();
         };
