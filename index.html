@@ -62,34 +62,98 @@
             // }
         };
 
-        var MovementModel = function(topLevel) {
+        var KeyProcessor = function(topLevel) {
             var self = this;
 
             self.topLevel = topLevel;
-            self.movementIncrement = 1; // 1 or 2 depending on walking or running
+            self.keyProcessingChoice = KeyProcessingOptionMoving;
+
+            self.movementProcessor = new MovementProcessor(self.topLevel);
+            
+            self.ProcessKeyPress = function(key) {
+                if(self.keyProcessingChoice == KeyProcessingOptionMoving) {
+                    self.movementProcessor.ProcessKeyPress(key);
+                } else if(self.keyProcessingChoice == KeyProcessingOptionTalking) {
+
+                }
+            }
+        }
+
+        var MovementProcessor = function(topLevel) {
+            var self = this;
+
+            self.topLevel = topLevel;
+            self.movementIncrement = 0; // 1 or 2 depending on walking or running
+            self.running = false;
 
             self.ProcessKeyPress = function(key) {
-                //console.log("ugh");
+
                 let movingToX = self.topLevel.currentX;
                 let movingToY = self.topLevel.currentY;
-                if(key === 'w') {
-                    movingToY = movingToY - self.movementIncrement;
-                } else if(key === 'a') {
-                    movingToX = movingToX - self.movementIncrement;
-                } else if(key === 's') {
-                    movingToY = movingToY + self.movementIncrement;
-                } else if(key === 'd') {
-                    movingToX = movingToX + self.movementIncrement;
+
+                self.movementIncrement = self.running ? 2 : 1;
+
+                // when running we move two tiles - we need to get the tile between where we currently are
+                // and where we going, to confirm it is something we can pass through
+                let tileSkipping = null;
+                let skippingX = self.topLevel.currentX;
+                let skippingY = self.topLevel.currentY;
+                if(self.running) {
+                    
+                    if(key === 'w') {
+                        skippingY = skippingY - 1;
+                    } else if(key === 'a') {
+                        skippingX = skippingX - 1;
+                    } else if(key === 's') {
+                        skippingY = skippingY + 1;
+                    } else if(key === 'd') {
+                        skippingX = skippingX + 1;
+                    }
+                    tileSkipping = self.topLevel.GetTileAt(skippingX,skippingY);
+                    // if we can't pass over this tile then we crash/stop running
+                    if(tileSkipping && tileSkipping.IsPassable()) {
+
+                    } else {
+                        self.running = false;
+                        return;
+                    }
                 }
 
-                var moveToTile = self.topLevel.GetTileAt(movingToX,movingToY);
+                let isMoving = false;
+                if(key === 'w') {
+                    movingToY = movingToY - self.movementIncrement;
+                    isMoving = true;
+                } else if(key === 'a') {
+                    movingToX = movingToX - self.movementIncrement;
+                    isMoving = true;
+                } else if(key === 's') {
+                    movingToY = movingToY + self.movementIncrement;
+                    isMoving = true;
+                } else if(key === 'd') {
+                    movingToX = movingToX + self.movementIncrement;
+                    isMoving = true;
+                } else if(key === 'r') {
+                    self.running = !self.running;
+                }
 
-                if(moveToTile) {
-                    if(moveToTile.IsPassable()) {
-                        self.topLevel.currentX = movingToX;
-                        self.topLevel.currentY = movingToY;
-                    } else {
+                // if the key press was intended to generate movement then we see if can move
+                // is there a tile in that direction at all?
+                // if so, is it one that we can move onto?
+                if(isMoving) {
+                    var moveToTile = self.topLevel.GetTileAt(movingToX,movingToY);
 
+                    if(moveToTile) {
+                        if(moveToTile.IsPassable()) {
+                            self.topLevel.currentX = movingToX;
+                            self.topLevel.currentY = movingToY;
+                        } else {
+                            // if we're running and we crash when trying to go to the second step, stop us on the first step instead
+                            if(self.running) {
+                                self.topLevel.currentX = skippingX;
+                                self.topLevel.currentY = skippingY;
+                                self.running = false;
+                            }
+                        }
                     }
                 }
 
@@ -99,7 +163,7 @@
         var TilesModel = function() {
             var self = this;
 
-            self.movementModel = new MovementModel(this);
+            self.keyProcessor = new KeyProcessor(this);
 
             self.canvas = document.getElementById('canvas');
             self.ctx = self.canvas.getContext('2d');
@@ -115,14 +179,13 @@
             self.tilesToDrawFromY = 0;
             self.totalTilesInX = 0;     // how many tiles currently on the screen
             self.totalTilesInY = 0;
-            self.currentX = 20;         // the tile index position of the current user position
+            self.currentX = 20;         // the tile index position of the user
             self.currentY = 3;
             self.centerTileAtX = 0;     // where to start drawing the center tile (the coordinates on the canvas)
             self.centerTileAtY = 0;
             self.maxX = 1000;
             self.maxY = 1000;
 
-            self.keyProcessingChoice = KeyProcessingOptionMoving;
 
             self.GenerateTiles = function() {
                 for(let y = 0; y < self.maxY; y++) {
@@ -283,11 +346,7 @@
 
             self.ProcessKeyDown = function(event) {
                 //console.log(event.key);
-                if(self.keyProcessingChoice == KeyProcessingOptionMoving) {
-                    self.movementModel.ProcessKeyPress(event.key);
-                } else if(self.keyProcessingChoice == KeyProcessingOptionTalking) {
-
-                }
+                self.keyProcessor.ProcessKeyPress(event.key);
             }
 
             self.Initialize = function() {
