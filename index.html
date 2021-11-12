@@ -44,10 +44,14 @@
             self.y = y;
 
             self.image = null;
-            self.passable = "yes";
+            self.passable = true;
+            self.climbable = false;
 
             self.IsPassable = function() {
-                return self.passable === "yes";
+                return self.passable;
+            };
+            self.IsClimbable = function() {
+                return self.climbable;
             };
 
             // var random = randomIntFromInterval(1,20);
@@ -85,6 +89,7 @@
             self.topLevel = topLevel;
             self.movementIncrement = 0; // 1 or 2 depending on walking or running
             self.running = false;
+            self.climbing = false;
 
             self.ProcessKeyPress = function(key) {
 
@@ -134,6 +139,10 @@
                     isMoving = true;
                 } else if(key === 'r') {
                     self.running = !self.running;
+                } else if(key === 'c') {
+                    self.climbing = true;
+                    // starting climbing stops you running
+                    self.running = false;
                 }
 
                 // if the key press was intended to generate movement then we see if can move
@@ -146,6 +155,10 @@
                         if(moveToTile.IsPassable()) {
                             self.topLevel.currentX = movingToX;
                             self.topLevel.currentY = movingToY;
+                        } else if(moveToTile.IsClimbable() && self.climbing) {
+                            self.topLevel.currentX = movingToX;
+                            self.topLevel.currentY = movingToY;
+                            self.climbing = false;
                         } else {
                             // if we're running and we crash when trying to go to the second step, stop us on the first step instead
                             if(self.running) {
@@ -153,6 +166,14 @@
                                 self.topLevel.currentY = skippingY;
                                 self.running = false;
                             }
+                        }
+                    } else {
+                        // they tried to move off the edge of the world <<madness>>
+                        self.climbing = false;
+                        if(self.running) {
+                            self.topLevel.currentX = skippingX;
+                            self.topLevel.currentY = skippingY;
+                            self.running = false;
                         }
                     }
                 }
@@ -198,9 +219,10 @@
                     self.rows.push(col);
                 }
                 self.rows[0][0].image = "brick01.png";
-                self.rows[0][0].passable = "no";
+                self.rows[0][0].passable = false;
                 self.rows[5][19].image = "brick01.png";
-                self.rows[5][19].passable = "climb";
+                self.rows[5][19].passable = false;
+                self.rows[5][19].climbable = true;
             };
 
             self.GetTileAt = function(tileX,tileY) {
