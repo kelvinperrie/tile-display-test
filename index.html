@@ -44,6 +44,11 @@
             self.y = y;
 
             self.image = null;
+            self.passable = "yes";
+
+            self.IsPassable = function() {
+                return self.passable === "yes";
+            };
 
             // var random = randomIntFromInterval(1,20);
             // if(random == 1) {
@@ -61,18 +66,33 @@
             var self = this;
 
             self.topLevel = topLevel;
+            self.movementIncrement = 1; // 1 or 2 depending on walking or running
 
             self.ProcessKeyPress = function(key) {
                 //console.log("ugh");
+                let movingToX = self.topLevel.currentX;
+                let movingToY = self.topLevel.currentY;
                 if(key === 'w') {
-                    self.topLevel.currentY = self.topLevel.currentY - 1;
+                    movingToY = movingToY - self.movementIncrement;
                 } else if(key === 'a') {
-                    self.topLevel.currentX = self.topLevel.currentX - 1;
+                    movingToX = movingToX - self.movementIncrement;
                 } else if(key === 's') {
-                    self.topLevel.currentY = self.topLevel.currentY + 1;
+                    movingToY = movingToY + self.movementIncrement;
                 } else if(key === 'd') {
-                    self.topLevel.currentX = self.topLevel.currentX + 1;
+                    movingToX = movingToX + self.movementIncrement;
                 }
+
+                var moveToTile = self.topLevel.GetTileAt(movingToX,movingToY);
+
+                if(moveToTile) {
+                    if(moveToTile.IsPassable()) {
+                        self.topLevel.currentX = movingToX;
+                        self.topLevel.currentY = movingToY;
+                    } else {
+
+                    }
+                }
+
             };
         }
 
@@ -115,7 +135,9 @@
                     self.rows.push(col);
                 }
                 self.rows[0][0].image = "brick01.png";
+                self.rows[0][0].passable = "no";
                 self.rows[5][19].image = "brick01.png";
+                self.rows[5][19].passable = "climb";
             };
 
             self.GetTileAt = function(tileX,tileY) {
