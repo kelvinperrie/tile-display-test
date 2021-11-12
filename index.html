@@ -25,6 +25,9 @@
     <script src="jquery-3.3.1.min.js" type="text/javascript"></script>
     <script type="text/javascript">
 
+        const KeyProcessingOptionMoving = "moving";
+        const KeyProcessingOptionTalking = "talking";
+
         function randomIntFromInterval(min, max) { // min and max included 
             return Math.floor(Math.random() * (max - min + 1) + min)
         }
@@ -54,8 +57,29 @@
             // }
         };
 
+        var MovementModel = function(topLevel) {
+            var self = this;
+
+            self.topLevel = topLevel;
+
+            self.ProcessKeyPress = function(key) {
+                //console.log("ugh");
+                if(key === 'w') {
+                    self.topLevel.currentY = self.topLevel.currentY - 1;
+                } else if(key === 'a') {
+                    self.topLevel.currentX = self.topLevel.currentX - 1;
+                } else if(key === 's') {
+                    self.topLevel.currentY = self.topLevel.currentY + 1;
+                } else if(key === 'd') {
+                    self.topLevel.currentX = self.topLevel.currentX + 1;
+                }
+            };
+        }
+
         var TilesModel = function() {
             var self = this;
+
+            self.movementModel = new MovementModel(this);
 
             self.canvas = document.getElementById('canvas');
             self.ctx = self.canvas.getContext('2d');
@@ -65,16 +89,20 @@
             self.rows = [];
             self.tileHeight = 40;
             self.tileWidth = 30;
-            self.startDrawingY = 0;     // the coordinates on the canvas
-            self.startDrawingX = 0;
+            self.startDrawingX = 0;     // the index of the first tile on the canvas
+            self.startDrawingY = 0;     
             self.tilesToDrawFromX = 0;  // how many tiles between the edge and the center
             self.tilesToDrawFromY = 0;
-            self.totalTilesInX = 0;
+            self.totalTilesInX = 0;     // how many tiles currently on the screen
             self.totalTilesInY = 0;
-            self.currentX = 20;
+            self.currentX = 20;         // the tile index position of the current user position
             self.currentY = 3;
+            self.centerTileAtX = 0;     // where to start drawing the center tile (the coordinates on the canvas)
+            self.centerTileAtY = 0;
             self.maxX = 1000;
             self.maxY = 1000;
+
+            self.keyProcessingChoice = KeyProcessingOptionMoving;
 
             self.GenerateTiles = function() {
                 for(let y = 0; y < self.maxY; y++) {
@@ -124,7 +152,7 @@
             
 
             self.DrawLoop = function() {
-                console.log("starting draw loop")
+                //console.log("starting draw loop")
                 self.ctx.fillStyle = 'white';
                 self.ctx.fillRect(0, 0, self.canvasWidth, self.canvasHeight);
 
@@ -173,17 +201,22 @@
                             //console.log("no tile at " + (startDrawingFromTileX+x) + "," + (startDrawingFromTileY+y));
                             self.ctx.fillRect(drawAtX, drawAtY, self.tileWidth, self.tileHeight);
                         }
-
-
                     }
-                    
                 }
                 self.ctx.stroke();
                 self.ctx.restore();
-                console.log("ended draw loop")
+                //console.log("ended draw loop")
+
+                // draw the player
+                self.ctx.save();
+                self.ctx.beginPath();
+                self.ctx.fillStyle = 'yellow';
+                self.ctx.fillRect(self.centerTileAtX, self.centerTileAtY, self.tileWidth, self.tileHeight);
+                self.ctx.stroke();
+                self.ctx.restore();
 
                 window.requestAnimationFrame(self.DrawLoop);
-                //setTimeout(function() { self.DrawLoop() }, 100);
+                //setTimeout(function() { self.DrawLoop() }, 1000);
             };
 
             self.ResizeHandler = function() {
@@ -207,6 +240,7 @@
                 // and
                 // from the center tile, how far back (in tiles) do we start drawing?
                 var centerTileAt = (width/2) - (self.tileWidth /2);
+                self.centerTileAtX = centerTileAt;
                 self.tilesToDrawFromX = Math.ceil(centerTileAt / self.tileWidth);
                 self.startDrawingX = centerTileAt - (self.tilesToDrawFromX * self.tileWidth);
                 self.totalTilesInX = (self.tilesToDrawFromX * 2) + 1;
@@ -215,6 +249,7 @@
                 console.log("self.totalTilesInX: " + self.totalTilesInX);
 
                 var centerTileAt = (height/2) - (self.tileHeight /2);
+                self.centerTileAtY = centerTileAt;
                 self.tilesToDrawFromY = Math.ceil(centerTileAt / self.tileHeight);
                 self.startDrawingY = centerTileAt - (self.tilesToDrawFromY * self.tileHeight);
                 self.totalTilesInY = (self.tilesToDrawFromY * 2) + 1;
@@ -224,11 +259,21 @@
 
             };
 
+            self.ProcessKeyDown = function(event) {
+                //console.log(event.key);
+                if(self.keyProcessingChoice == KeyProcessingOptionMoving) {
+                    self.movementModel.ProcessKeyPress(event.key);
+                } else if(self.keyProcessingChoice == KeyProcessingOptionTalking) {
+
+                }
+            }
+
             self.Initialize = function() {
                 // get canvas the right size
                 self.ResizeHandler();
                 // hook up resize handler
                 window.addEventListener('resize', self.ResizeHandler, false);
+                window.addEventListener('keydown', self.ProcessKeyDown, false);
                 // make some dummy tiles
                 self.GenerateTiles();
                 // figure out how many etc tiles we are drawing
