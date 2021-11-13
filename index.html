@@ -45,6 +45,10 @@
             self.name = name;
             self.wordTriggers = wordTriggers;
             self.image = image;
+
+            self.CanTalkTo = function() {
+                return self.wordTriggers!==null;
+            }
         };
 
         var TileModel = function(x,y) {
@@ -75,16 +79,28 @@
             self.topLevel = topLevel;
             self.keyProcessingChoice = KeyProcessingOptionMoving;
 
-            self.movementProcessor = new MovementProcessor(self.topLevel, this);
-            self.talkingProcessor = new TalkingProcessor(self.topLevel, this);
-            
-            self.ProcessKeyPress = function(key) {
+
+            self.stopTalkingTo = function(person) {
+                person.inConversation = false;
+                self.keyProcessingChoice = KeyProcessingOptionMoving;
+            }
+
+            self.startTalkingTo = function(person) {
+                person.inConversation = true;
+                self.keyProcessingChoice = KeyProcessingOptionTalking;
+                self.talkingProcessor.SetPersonBeingTalkedTo(person);
+            }
+
+            self.ProcessKeyPress = function(event) {
                 if(self.keyProcessingChoice == KeyProcessingOptionMoving) {
-                    self.movementProcessor.ProcessKeyPress(key);
+                    self.movementProcessor.ProcessKeyPress(event.key);
                 } else if(self.keyProcessingChoice == KeyProcessingOptionTalking) {
-                    self.talkingProcessor.ProcessKeyPress(key);
+                    self.talkingProcessor.ProcessKeyPress(event);
                 }
             }
+
+            self.movementProcessor = new MovementProcessor(self.topLevel, this, self.startTalkingTo);
+            self.talkingProcessor = new TalkingProcessor(self.topLevel, this, self.stopTalkingTo);
         }
 
        
@@ -210,7 +226,6 @@
                         if(tileToDraw) {
                             if(tileToDraw.image) {
                                 //console.log("drawing image " + tileToDraw.image + " at " + (drawAtX) + "," + (drawAtY))
-                                console.log(self.images);
                                 self.ctx.drawImage(self.images[tileToDraw.image], drawAtX, drawAtY);
                             }
                             if(tileToDraw.person) {
@@ -277,7 +292,7 @@
 
             self.ProcessKeyDown = function(event) {
                 //console.log(event.key);
-                self.keyProcessor.ProcessKeyPress(event.key);
+                self.keyProcessor.ProcessKeyPress(event);
             }
 
             self.Initialize = function() {

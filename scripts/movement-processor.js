@@ -1,4 +1,4 @@
-var MovementProcessor = function(topLevel, keyProcessor) {
+var MovementProcessor = function(topLevel, keyProcessor, startTalkingToCallback) {
     var self = this;
 
     self.topLevel = topLevel;
@@ -7,6 +7,7 @@ var MovementProcessor = function(topLevel, keyProcessor) {
     self.running = false;
     self.climbing = false;
     self.talking = false;
+    self.startTalkingToCallback = startTalkingToCallback;
 
     self.ProcessKeyPress = function(key) {
 
@@ -27,11 +28,12 @@ var MovementProcessor = function(topLevel, keyProcessor) {
                 return;
             }
             let tileTalking = self.topLevel.GetTileAt(talkingToX,talkingToY);
-            if(tileTalking.person && tileTalking.person.canTalkTo) {
-                tileTalking.person.inConversation = true;
-                self.keyProcessor.keyProcessingChoice = KeyProcessingOptionTalking;
-                self.talking = false;
+            //console.log(tileTalking);
+            if(tileTalking.person && tileTalking.person.CanTalkTo()) {
+                //console.log(self.startTalkingToCallback)
+                self.startTalkingToCallback(tileTalking.person);
             }
+            self.talking = false;
             return;
         }
 
