@@ -22,7 +22,9 @@
 <body onload="">
     <canvas id="canvas" ></canvas>
 
-    <script src="jquery-3.3.1.min.js" type="text/javascript"></script>
+    <script src="scripts/jquery-3.3.1.min.js" type="text/javascript"></script>
+    <script src="scripts/movement-processor.js" type="text/javascript"></script>
+    <script src="scripts/talking-processor.js" type="text/javascript"></script>
     <script type="text/javascript">
 
         const KeyProcessingOptionMoving = "moving";
@@ -37,6 +39,14 @@
             var model = new TilesModel();
         });
 
+        var PersonModel = function(name, wordTriggers, image) {
+            var self = this;
+
+            self.name = name;
+            self.wordTriggers = wordTriggers;
+            self.image = image;
+        };
+
         var TileModel = function(x,y) {
             var self = this;
 
@@ -46,24 +56,17 @@
             self.image = null;
             self.passable = true;
             self.climbable = false;
+            self.person = null;
 
             self.IsPassable = function() {
-                return self.passable;
+                // can't pass if there is a person there
+                return self.passable && self.person===null;
             };
             self.IsClimbable = function() {
-                return self.climbable;
+                // you can climb on people right?
+                return self.climbable || self.person;
             };
 
-            // var random = randomIntFromInterval(1,20);
-            // if(random == 1) {
-            //     self.image = "brick01.png";
-            // }
-            // else if(random == 2) {
-            //     self.image = "pavement02.png";
-            // }
-            // else {
-            //     self.image = "pavement01.png";
-            // }
         };
 
         var KeyProcessor = function(topLevel) {
@@ -72,114 +75,19 @@
             self.topLevel = topLevel;
             self.keyProcessingChoice = KeyProcessingOptionMoving;
 
-            self.movementProcessor = new MovementProcessor(self.topLevel);
+            self.movementProcessor = new MovementProcessor(self.topLevel, this);
+            self.talkingProcessor = new TalkingProcessor(self.topLevel, this);
             
             self.ProcessKeyPress = function(key) {
                 if(self.keyProcessingChoice == KeyProcessingOptionMoving) {
                     self.movementProcessor.ProcessKeyPress(key);
                 } else if(self.keyProcessingChoice == KeyProcessingOptionTalking) {
-
+                    self.talkingProcessor.ProcessKeyPress(key);
                 }
             }
         }
 
-        var MovementProcessor = function(topLevel) {
-            var self = this;
-
-            self.topLevel = topLevel;
-            self.movementIncrement = 0; // 1 or 2 depending on walking or running
-            self.running = false;
-            self.climbing = false;
-
-            self.ProcessKeyPress = function(key) {
-
-                let movingToX = self.topLevel.currentX;
-                let movingToY = self.topLevel.currentY;
-
-                self.movementIncrement = self.running ? 2 : 1;
-
-                // when running we move two tiles - we need to get the tile between where we currently are
-                // and where we going, to confirm it is something we can pass through
-                let tileSkipping = null;
-                let skippingX = self.topLevel.currentX;
-                let skippingY = self.topLevel.currentY;
-                if(self.running) {
-                    
-                    if(key === 'w') {
-                        skippingY = skippingY - 1;
-                    } else if(key === 'a') {
-                        skippingX = skippingX - 1;
-                    } else if(key === 's') {
-                        skippingY = skippingY + 1;
-                    } else if(key === 'd') {
-                        skippingX = skippingX + 1;
-                    }
-                    tileSkipping = self.topLevel.GetTileAt(skippingX,skippingY);
-                    // if we can't pass over this tile then we crash/stop running
-                    if(tileSkipping && tileSkipping.IsPassable()) {
-
-                    } else {
-                        self.running = false;
-                        return;
-                    }
-                }
-
-                let isMoving = false;
-                if(key === 'w') {
-                    movingToY = movingToY - self.movementIncrement;
-                    isMoving = true;
-                } else if(key === 'a') {
-                    movingToX = movingToX - self.movementIncrement;
-                    isMoving = true;
-                } else if(key === 's') {
-                    movingToY = movingToY + self.movementIncrement;
-                    isMoving = true;
-                } else if(key === 'd') {
-                    movingToX = movingToX + self.movementIncrement;
-                    isMoving = true;
-                } else if(key === 'r') {
-                    self.running = !self.running;
-                } else if(key === 'c') {
-                    self.climbing = true;
-                    // starting climbing stops you running
-                    self.running = false;
-                }
-
-                // if the key press was intended to generate movement then we see if can move
-                // is there a tile in that direction at all?
-                // if so, is it one that we can move onto?
-                if(isMoving) {
-                    var moveToTile = self.topLevel.GetTileAt(movingToX,movingToY);
-
-                    if(moveToTile) {
-                        if(moveToTile.IsPassable()) {
-                            self.topLevel.currentX = movingToX;
-                            self.topLevel.currentY = movingToY;
-                        } else if(moveToTile.IsClimbable() && self.climbing) {
-                            self.topLevel.currentX = movingToX;
-                            self.topLevel.currentY = movingToY;
-                            self.climbing = false;
-                        } else {
-                            // if we're running and we crash when trying to go to the second step, stop us on the first step instead
-                            if(self.running) {
-                                self.topLevel.currentX = skippingX;
-                                self.topLevel.currentY = skippingY;
-                                self.running = false;
-                            }
-                        }
-                    } else {
-                        // they tried to move off the edge of the world <<madness>>
-                        self.climbing = false;
-                        if(self.running) {
-                            self.topLevel.currentX = skippingX;
-                            self.topLevel.currentY = skippingY;
-                            self.running = false;
-                        }
-                    }
-                }
-
-            };
-        }
+       
 
         var TilesModel = function() {
             var self = this;
@@ -223,6 +131,8 @@
                 self.rows[5][19].image = "brick01.png";
                 self.rows[5][19].passable = false;
                 self.rows[5][19].climbable = true;
+
+                self.rows[3][15].person = new PersonModel("test person",{},"person01.png");
             };
 
             self.GetTileAt = function(tileX,tileY) {
@@ -244,8 +154,9 @@
                     var img = new Image();
                     img.onload = imageLoaded;
                     img.src = arr[i];
-                    //this.images[arr[i]] = img;
-                    self.images.push(img);
+                    let name = arr[i].split("/")[1];
+                    self.images[name] = img;
+                    //self.images.push(img);
                 }
 
                 function imageLoaded(e) {
@@ -299,7 +210,11 @@
                         if(tileToDraw) {
                             if(tileToDraw.image) {
                                 //console.log("drawing image " + tileToDraw.image + " at " + (drawAtX) + "," + (drawAtY))
-                                self.ctx.drawImage(self.images[0], drawAtX, drawAtY);
+                                console.log(self.images);
+                                self.ctx.drawImage(self.images[tileToDraw.image], drawAtX, drawAtY);
+                            }
+                            if(tileToDraw.person) {
+                                self.ctx.drawImage(self.images[tileToDraw.person.image], drawAtX, drawAtY);
                             }
                             self.ctx.textBaseline = "hanging";
                             self.ctx.fillText((startDrawingFromTileX+x)+','+(startDrawingFromTileY+y), drawAtX, drawAtY);
@@ -312,15 +227,9 @@
                 }
                 self.ctx.stroke();
                 self.ctx.restore();
-                //console.log("ended draw loop")
 
                 // draw the player
-                self.ctx.save();
-                self.ctx.beginPath();
-                self.ctx.fillStyle = 'yellow';
-                self.ctx.fillRect(self.centerTileAtX, self.centerTileAtY, self.tileWidth, self.tileHeight);
-                self.ctx.stroke();
-                self.ctx.restore();
+                self.ctx.drawImage(self.images['person02.png'], self.centerTileAtX, self.centerTileAtY);
 
                 window.requestAnimationFrame(self.DrawLoop);
                 //setTimeout(function() { self.DrawLoop() }, 1000);
@@ -383,7 +292,7 @@
                 self.CalculateDrawSizes();
                 //window.requestAnimationFrame(self.DrawLoop());
                 //self.DrawLoop();
-                self.loader = self.LoadImages(['images/brick01.png'], function() {
+                self.loader = self.LoadImages(['images/brick01.png','images/person01.png','images/person02.png'], function() {
                     //self.DrawLoop();
                     window.requestAnimationFrame(self.DrawLoop);
                 });
