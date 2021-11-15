@@ -7,6 +7,7 @@ self.TalkingProcessor = function(topLevel, keyProcessor, stopTalkingToCallback) 
     self.saying = "";
     self.personTalkingTo = null;
     self.stopTalkingToCallback = stopTalkingToCallback;
+    self.confusedResponses = ["Uuuhh ...", "...", "Sorry?", "I don't know anything about that"];
 
     self.SetPersonBeingTalkedTo = function(person) {
         self.personTalkingTo = person;
@@ -21,13 +22,28 @@ self.TalkingProcessor = function(topLevel, keyProcessor, stopTalkingToCallback) 
             self.stopTalkingToCallback(self.personTalkingTo);
             
         } else {
-            // check to see if this person wants to say anything back
-
+            var response = null;
+            // check the trigger has some length, otherwise we will repsond to single character triggers due to our .contains check
+            if(trigger && trigger.length >= 3) {
+                // check to see if this person wants to say anything back
+                response = self.personTalkingTo.Ask(trigger);
+            }
+            if(response) {
+                self.MakeResponse(response);
+            } else {
+                // the person didn't have a trigger
+                self.MakeResponse(self.GetConfusedResponse());
+            }
         }
     }
 
+    self.GetConfusedResponse = function() {
+        var rando = randomIntFromInterval(0, self.confusedResponses.length - 1)
+        return self.confusedResponses[rando];
+    }
+
     self.MakeResponse = function(response) {
-        console.log(self.personTalkingTo.name + " said " + response);
+        console.log(self.personTalkingTo.name + " said: " + response);
     }
 
     self.ProcessKeyPress = function(event) {
