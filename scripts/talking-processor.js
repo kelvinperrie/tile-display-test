@@ -11,6 +11,10 @@ self.TalkingProcessor = function(topLevel, keyProcessor, stopTalkingToCallback) 
 
     self.SetPersonBeingTalkedTo = function(person) {
         self.personTalkingTo = person;
+        let greeting = person.GetInitialGreeting();
+        if(greeting) {
+            self.MakeResponse(greeting);
+        }
     }
 
     self.FindResponse = function(trigger) {
@@ -19,6 +23,7 @@ self.TalkingProcessor = function(topLevel, keyProcessor, stopTalkingToCallback) 
             self.MakeResponse(trigger);
         } else if(trigger === "bye") {
             self.MakeResponse("bye");
+            self.personTalkingTo.StopTalkingTo();
             self.stopTalkingToCallback(self.personTalkingTo);
             
         } else {
@@ -29,7 +34,14 @@ self.TalkingProcessor = function(topLevel, keyProcessor, stopTalkingToCallback) 
                 response = self.personTalkingTo.Ask(trigger);
             }
             if(response) {
-                self.MakeResponse(response);
+                // is it a single line, or multiple?
+                if(Array.isArray(response)) {
+                    for(let i = 0; i < response.length; i++) {
+                        self.MakeResponse(response[i]);
+                    }
+                } else {
+                    self.MakeResponse(response);
+                }
             } else {
                 // the person didn't have a trigger
                 self.MakeResponse(self.GetConfusedResponse());

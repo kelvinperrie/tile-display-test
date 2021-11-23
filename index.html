@@ -38,17 +38,46 @@
             var model = new TilesModel();
         });
 
-        var PersonModel = function(name, wordTriggers, image) {
+        var WeaponModel = function(name, damage, charge, value) {
             var self = this;
 
             self.name = name;
+            self.damage = damage;
+            self.charge = charge;
+            self.value = value;
+
+            self.BuyDescription = function() {
+                return self.name + "(" + self.damage + " dmg) with " + self.charge + " charge, costs " + self.value + " creds."
+            };
+        }
+
+        var PersonModel = function(name, initialGreeting, wordTriggers, image, inventory) {
+            var self = this;
+
+            self.name = name;
+            self.initialGreeting = initialGreeting;
             self.wordTriggers = wordTriggers;
             self.image = image;
+            self.buying = false;
+            self.inventory = [
+                new WeaponModel("Blaster", 5, 20, 5),
+                new WeaponModel("Blaster", 5, 17, 4),
+            ];
 
+            self.GetInitialGreeting = function() {
+                return self.initialGreeting;
+            }
+            self.StopTalkingTo = function() {
+                self.buying = false;
+            }
             self.CanTalkTo = function() {
                 return self.wordTriggers!==null;
             }
             self.Ask = function(trigger) {
+                if(trigger.toLowerCase() === 'buy') {
+                    self.buying = true;
+                    return self.GetInventory();
+                }
                 if(!trigger || !self.wordTriggers) return null;
                 let triggers = trigger.split(" ");
                 for(let t = 0; t < triggers.length; t++) {
@@ -59,6 +88,15 @@
                         }
                     }
                 }
+            }
+            self.GetInventory = function() {
+                if(!self.inventory || self.inventory.length === 0) return "I haven't got anything.";
+                let output = ["This is what I have:"];
+                for(let i = 0; i < self.inventory.length; i++) {
+                    output.push(i + " " + self.inventory[i].BuyDescription());
+                }
+                output.push("What number do you want to buy?");
+                return output;
             }
         };
 
@@ -163,7 +201,7 @@
                     { trigger : "test", response: "Yeah, your test worked :)" },
                     { trigger : "second", response: "Your second test is ok" },
                 ]
-                self.rows[3][15].person = new PersonModel("test person",person1Talkytalky,"person01.png");
+                self.rows[3][15].person = new PersonModel("test person", "howdy partner, you looking to buy?", person1Talkytalky,"person01.png");
             };
 
             self.GetTileAt = function(tileX,tileY) {
@@ -221,36 +259,35 @@
 
                 self.ctx.save();
                 self.ctx.beginPath();
-                self.ctx.strokeStyle = "#ff0000";
-                self.ctx.fillStyle = 'black';
+                self.ctx.strokeStyle = "#F2F2F2";
+                self.ctx.fillStyle = '#CECECE';
                 for(let y = 0; y < self.totalTilesInY; y++) {
-                    //console.log("drawing y of "+y)
 
                     for(let x = 0; x < self.totalTilesInX; x++) {
-                        
-                        //console.log("drawing x,y of "+x+","+y);
-
 
                         var drawAtX = self.startDrawingX + (x * self.tileWidth);
                         var drawAtY = self.startDrawingY + (y * self.tileHeight);
 
-                        //console.log("x = " + drawAtX + ", y = " + drawAtY)
+                        // draw a rectangle around our tile
                         self.ctx.rect(drawAtX, drawAtY, self.tileWidth, self.tileHeight);
 
+                        // see if we have a tile at this x and y
                         var tileToDraw = self.GetTileAt(startDrawingFromTileX+x,startDrawingFromTileY+y);
                         if(tileToDraw) {
+                            // we have a tile to display, so draw what we need to for that tile
                             if(tileToDraw.image) {
-                                //console.log("drawing image " + tileToDraw.image + " at " + (drawAtX) + "," + (drawAtY))
                                 self.ctx.drawImage(self.images[tileToDraw.image], drawAtX, drawAtY);
                             }
+                            // if there is a person on this tile then draw them too
                             if(tileToDraw.person) {
                                 self.ctx.drawImage(self.images[tileToDraw.person.image], drawAtX, drawAtY);
                             }
+                            // put co-ordinates on the tile
                             self.ctx.textBaseline = "hanging";
                             self.ctx.fillText((startDrawingFromTileX+x)+','+(startDrawingFromTileY+y), drawAtX, drawAtY);
-                            //console.log("got a tile at " + (startDrawingFromTileX+x) + "," + (startDrawingFromTileY+y));
+                            
                         } else {
-                            //console.log("no tile at " + (startDrawingFromTileX+x) + "," + (startDrawingFromTileY+y));
+                            // we didn't have a tile, so we're just going to draw an empty rectangle over the tile
                             self.ctx.fillRect(drawAtX, drawAtY, self.tileWidth, self.tileHeight);
                         }
                     }
