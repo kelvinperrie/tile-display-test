@@ -1,4 +1,4 @@
-var MovementProcessor = function(topLevel, keyProcessor, startTalkingToCallback) {
+var CommandProcessor = function(topLevel, keyProcessor, startTalkingToCallback) {
     var self = this;
 
     self.topLevel = topLevel;

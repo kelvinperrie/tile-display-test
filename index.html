@@ -24,14 +24,26 @@
 
     <script src="scripts/jquery-3.3.1.min.js" type="text/javascript"></script>
     <script src="scripts/utility.js" type="text/javascript"></script>
-    <script src="scripts/movement-processor.js" type="text/javascript"></script>
+    <script src="scripts/key-processor.js" type="text/javascript"></script>
+    <script src="scripts/command-processor.js" type="text/javascript"></script>
     <script src="scripts/talking-processor.js" type="text/javascript"></script>
+    <script src="scripts/person-model.js" type="text/javascript"></script>
+    <script src="scripts/player-model.js" type="text/javascript"></script>
+    <script src="scripts/message-output.js" type="text/javascript"></script>
     <script type="text/javascript">
 
         const KeyProcessingOptionMoving = "moving";
         const KeyProcessingOptionTalking = "talking";
 
-
+        var services = {
+            messageOutput: new MessageOutput(),
+            player: new PlayerModel()
+        };
+        
+        
+        function GetService(serviceType) {
+            return services[serviceType];
+        };
 
         $(document).ready(function () {
 
@@ -51,54 +63,6 @@
             };
         }
 
-        var PersonModel = function(name, initialGreeting, wordTriggers, image, inventory) {
-            var self = this;
-
-            self.name = name;
-            self.initialGreeting = initialGreeting;
-            self.wordTriggers = wordTriggers;
-            self.image = image;
-            self.buying = false;
-            self.inventory = [
-                new WeaponModel("Blaster", 5, 20, 5),
-                new WeaponModel("Blaster", 5, 17, 4),
-            ];
-
-            self.GetInitialGreeting = function() {
-                return self.initialGreeting;
-            }
-            self.StopTalkingTo = function() {
-                self.buying = false;
-            }
-            self.CanTalkTo = function() {
-                return self.wordTriggers!==null;
-            }
-            self.Ask = function(trigger) {
-                if(trigger.toLowerCase() === 'buy') {
-                    self.buying = true;
-                    return self.GetInventory();
-                }
-                if(!trigger || !self.wordTriggers) return null;
-                let triggers = trigger.split(" ");
-                for(let t = 0; t < triggers.length; t++) {
-                    let wordToTest = triggers[t];
-                    for(let i = 0; i < self.wordTriggers.length; i++) {
-                        if(self.wordTriggers[i].trigger && self.wordTriggers[i].trigger.toLowerCase().includes(wordToTest.toLowerCase())) {
-                            return self.wordTriggers[i].response;
-                        }
-                    }
-                }
-            }
-            self.GetInventory = function() {
-                if(!self.inventory || self.inventory.length === 0) return "I haven't got anything.";
-                let output = ["This is what I have:"];
-                for(let i = 0; i < self.inventory.length; i++) {
-                    output.push(i + " " + self.inventory[i].BuyDescription());
-                }
-                output.push("What number do you want to buy?");
-                return output;
-            }
-        };
 
         var TileModel = function(x,y) {
             var self = this;
@@ -122,35 +86,6 @@
 
         };
 
-        var KeyProcessor = function(topLevel) {
-            var self = this;
-
-            self.topLevel = topLevel;
-            self.keyProcessingChoice = KeyProcessingOptionMoving;
-
-
-            self.stopTalkingTo = function(person) {
-                person.inConversation = false;
-                self.keyProcessingChoice = KeyProcessingOptionMoving;
-            }
-
-            self.startTalkingTo = function(person) {
-                person.inConversation = true;
-                self.keyProcessingChoice = KeyProcessingOptionTalking;
-                self.talkingProcessor.SetPersonBeingTalkedTo(person);
-            }
-
-            self.ProcessKeyPress = function(event) {
-                if(self.keyProcessingChoice == KeyProcessingOptionMoving) {
-                    self.movementProcessor.ProcessKeyPress(event.key);
-                } else if(self.keyProcessingChoice == KeyProcessingOptionTalking) {
-                    self.talkingProcessor.ProcessKeyPress(event);
-                }
-            }
-
-            self.movementProcessor = new MovementProcessor(self.topLevel, this, self.startTalkingTo);
-            self.talkingProcessor = new TalkingProcessor(self.topLevel, this, self.stopTalkingTo);
-        }
 
        
 
@@ -187,10 +122,12 @@
 
                     for(let x = 0; x < self.maxX; x++) {
                         let tile = new TileModel(x,y);
+                        tile.image = "pavement01.png";
                         col.push(tile);
                     }
                     self.rows.push(col);
                 }
+                self.rows[5][5].image = "pavement02.png";
                 self.rows[0][0].image = "brick01.png";
                 self.rows[0][0].passable = false;
                 self.rows[5][19].image = "brick01.png";
@@ -201,7 +138,11 @@
                     { trigger : "test", response: "Yeah, your test worked :)" },
                     { trigger : "second", response: "Your second test is ok" },
                 ]
-                self.rows[3][15].person = new PersonModel("test person", "howdy partner, you looking to buy?", person1Talkytalky,"person01.png");
+                var person1Inventory = [
+                    new WeaponModel("Blaster", 5, 20, 5),
+                    new WeaponModel("Blaster", 5, 17, 4),
+                ];
+                self.rows[3][15].person = new PersonModel("test person", "howdy partner, you looking to buy?", person1Talkytalky,"person01.png",person1Inventory);
             };
 
             self.GetTileAt = function(tileX,tileY) {
@@ -269,13 +210,14 @@
                         var drawAtY = self.startDrawingY + (y * self.tileHeight);
 
                         // draw a rectangle around our tile
-                        self.ctx.rect(drawAtX, drawAtY, self.tileWidth, self.tileHeight);
+                        //self.ctx.rect(drawAtX, drawAtY, self.tileWidth, self.tileHeight);
 
                         // see if we have a tile at this x and y
                         var tileToDraw = self.GetTileAt(startDrawingFromTileX+x,startDrawingFromTileY+y);
                         if(tileToDraw) {
                             // we have a tile to display, so draw what we need to for that tile
                             if(tileToDraw.image) {
+                                //console.log("drawing image " + tileToDraw.image)
                                 self.ctx.drawImage(self.images[tileToDraw.image], drawAtX, drawAtY);
                             }
                             // if there is a person on this tile then draw them too
@@ -359,7 +301,7 @@
                 self.CalculateDrawSizes();
                 //window.requestAnimationFrame(self.DrawLoop());
                 //self.DrawLoop();
-                self.loader = self.LoadImages(['images/brick01.png','images/person01.png','images/person02.png'], function() {
+                self.loader = self.LoadImages(['images/brick01.png','images/person01.png','images/person02.png','images/pavement01.png','images/pavement02.png'], function() {
                     //self.DrawLoop();
                     window.requestAnimationFrame(self.DrawLoop);
                 });

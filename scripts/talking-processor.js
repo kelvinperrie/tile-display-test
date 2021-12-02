@@ -4,10 +4,10 @@ self.TalkingProcessor = function(topLevel, keyProcessor, stopTalkingToCallback) 
 
     self.topLevel = topLevel;
     self.keyProcessor = keyProcessor;
-    self.saying = "";
-    self.personTalkingTo = null;
-    self.stopTalkingToCallback = stopTalkingToCallback;
-    self.confusedResponses = ["Uuuhh ...", "...", "Sorry?", "I don't know anything about that"];
+    self.saying = "";                                       // tracks the text entered so far
+    self.personTalkingTo = null;                            // tracks the person being talked too
+    self.stopTalkingToCallback = stopTalkingToCallback;     // method to call when talking is completed
+    self.messageOutput = services["messageOutput"];
 
     self.SetPersonBeingTalkedTo = function(person) {
         self.personTalkingTo = person;
@@ -29,39 +29,36 @@ self.TalkingProcessor = function(topLevel, keyProcessor, stopTalkingToCallback) 
         } else {
             var response = null;
             // check the trigger has some length, otherwise we will repsond to single character triggers due to our .contains check
-            if(trigger && trigger.length >= 3) {
+            if(trigger && (trigger.length >= 2 || !(isNaN(trigger)))) {
+                //console.log("checking for response to " + trigger)
                 // check to see if this person wants to say anything back
                 response = self.personTalkingTo.Ask(trigger);
             }
             if(response) {
-                // is it a single line, or multiple?
-                if(Array.isArray(response)) {
-                    for(let i = 0; i < response.length; i++) {
-                        self.MakeResponse(response[i]);
-                    }
-                } else {
-                    self.MakeResponse(response);
-                }
+                self.MakeResponse(response);
             } else {
-                // the person didn't have a trigger
-                self.MakeResponse(self.GetConfusedResponse());
+                // the person didn't have a response for some reason ...
+                self.MakeResponse("");
             }
         }
     }
 
-    self.GetConfusedResponse = function() {
-        var rando = randomIntFromInterval(0, self.confusedResponses.length - 1)
-        return self.confusedResponses[rando];
-    }
-
     self.MakeResponse = function(response) {
-        console.log(self.personTalkingTo.name + " said: " + response);
+        // is it a single line, or multiple?
+        if(Array.isArray(response)) {
+            self.messageOutput.Output(self.personTalkingTo.name + " said: ");
+            for(let i = 0; i < response.length; i++) {
+                self.messageOutput.Output(response[i]);
+            }
+        } else {
+            self.messageOutput.Output(self.personTalkingTo.name + " said: " + response);
+        }
     }
 
     self.ProcessKeyPress = function(event) {
         //console.log(event);
         if(event.keyCode === 13) {
-            console.log("Player said: " + self.saying);
+            self.messageOutput.Output("Player said: " + self.saying);
             self.FindResponse(self.saying);
             self.saying = "";
         } else {
