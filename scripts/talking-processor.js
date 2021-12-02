@@ -1,13 +1,10 @@
 
-self.TalkingProcessor = function(topLevel, keyProcessor, stopTalkingToCallback) {
+self.TalkingProcessor = function() {
     var self = this;
 
-    self.topLevel = topLevel;
-    self.keyProcessor = keyProcessor;
     self.saying = "";                                       // tracks the text entered so far
     self.personTalkingTo = null;                            // tracks the person being talked too
-    self.stopTalkingToCallback = stopTalkingToCallback;     // method to call when talking is completed
-    self.messageOutput = services["messageOutput"];
+    //self.messageOutput = services["messageOutput"];
 
     self.SetPersonBeingTalkedTo = function(person) {
         self.personTalkingTo = person;
@@ -24,7 +21,9 @@ self.TalkingProcessor = function(topLevel, keyProcessor, stopTalkingToCallback) 
         } else if(trigger === "bye") {
             self.MakeResponse("bye");
             self.personTalkingTo.StopTalkingTo();
-            self.stopTalkingToCallback(self.personTalkingTo);
+
+            game.keyProcessor.stopTalkingTo(self.personTalkingTo);
+            //self.stopTalkingToCallback(self.personTalkingTo);
             
         } else {
             var response = null;
@@ -46,19 +45,19 @@ self.TalkingProcessor = function(topLevel, keyProcessor, stopTalkingToCallback) 
     self.MakeResponse = function(response) {
         // is it a single line, or multiple?
         if(Array.isArray(response)) {
-            self.messageOutput.Output(self.personTalkingTo.name + " said: ");
+            game.messageOutput.Output(self.personTalkingTo.name + " said: ");
             for(let i = 0; i < response.length; i++) {
-                self.messageOutput.Output(response[i]);
+                game.messageOutput.Output(response[i]);
             }
         } else {
-            self.messageOutput.Output(self.personTalkingTo.name + " said: " + response);
+            game.messageOutput.Output(self.personTalkingTo.name + " said: " + response);
         }
     }
 
     self.ProcessKeyPress = function(event) {
         //console.log(event);
         if(event.keyCode === 13) {
-            self.messageOutput.Output("Player said: " + self.saying);
+            game.messageOutput.Output("Player said: " + self.saying);
             self.FindResponse(self.saying);
             self.saying = "";
         } else {

@@ -1,19 +1,22 @@
-var CommandProcessor = function(topLevel, keyProcessor, startTalkingToCallback) {
+var CommandProcessor = function() {
     var self = this;
 
-    self.topLevel = topLevel;
-    self.keyProcessor = keyProcessor;
     self.movementIncrement = 0; // 1 or 2 depending on walking or running
     self.running = false;
     self.climbing = false;
     self.talking = false;
-    self.startTalkingToCallback = startTalkingToCallback;
 
     self.ProcessKeyPress = function(key) {
 
+        // if(!self.topLevel) {
+        //     console.log("toplevel blanks")
+        //     self.topLevel = GetService("tilesModel");
+        //     console.log(self.topLevel);
+        // }
+
         if(self.talking) {
-            let talkingToX = self.topLevel.currentX;
-            let talkingToY = self.topLevel.currentY;
+            let talkingToX = game.tilesModel.currentX;
+            let talkingToY = game.tilesModel.currentY;
             if(key === 'w') {
                 talkingToY = talkingToY - 1;
             } else if(key === 'a') {
@@ -27,26 +30,27 @@ var CommandProcessor = function(topLevel, keyProcessor, startTalkingToCallback) 
                 self.talking = false;
                 return;
             }
-            let tileTalking = self.topLevel.GetTileAt(talkingToX,talkingToY);
+            let tileTalking = game.tilesModel.GetTileAt(talkingToX,talkingToY);
             //console.log(tileTalking);
             if(tileTalking.person && tileTalking.person.CanTalkTo()) {
                 //console.log(self.startTalkingToCallback)
-                self.startTalkingToCallback(tileTalking.person);
+                game.keyProcessor.startTalkingTo(tileTalking.person);
+                //self.startTalkingToCallback(tileTalking.person);
             }
             self.talking = false;
             return;
         }
 
-        let movingToX = self.topLevel.currentX;
-        let movingToY = self.topLevel.currentY;
+        let movingToX = game.tilesModel.currentX;
+        let movingToY = game.tilesModel.currentY;
 
         self.movementIncrement = self.running ? 2 : 1;
 
         // when running we move two tiles - we need to get the tile between where we currently are
         // and where we going, to confirm it is something we can pass through
         let tileSkipping = null;
-        let skippingX = self.topLevel.currentX;
-        let skippingY = self.topLevel.currentY;
+        let skippingX = game.tilesModel.currentX;
+        let skippingY = game.tilesModel.currentY;
         if(self.running) {
             
             if(key === 'w') {
@@ -58,7 +62,7 @@ var CommandProcessor = function(topLevel, keyProcessor, startTalkingToCallback) 
             } else if(key === 'd') {
                 skippingX = skippingX + 1;
             }
-            tileSkipping = self.topLevel.GetTileAt(skippingX,skippingY);
+            tileSkipping = game.tilesModel.GetTileAt(skippingX,skippingY);
             // if we can't pass over this tile then we crash/stop running
             if(tileSkipping && tileSkipping.IsPassable()) {
 
@@ -97,22 +101,22 @@ var CommandProcessor = function(topLevel, keyProcessor, startTalkingToCallback) 
         // is there a tile in that direction at all?
         // if so, is it one that we can move onto?
         if(isMoving) {
-            var moveToTile = self.topLevel.GetTileAt(movingToX,movingToY);
+            var moveToTile = game.tilesModel.GetTileAt(movingToX,movingToY);
 
             if(moveToTile) {
                 if(moveToTile.IsPassable()) {
-                    self.topLevel.currentX = movingToX;
-                    self.topLevel.currentY = movingToY;
+                    game.tilesModel.currentX = movingToX;
+                    game.tilesModel.currentY = movingToY;
                     self.climbing = false;
                 } else if(moveToTile.IsClimbable() && self.climbing) {
-                    self.topLevel.currentX = movingToX;
-                    self.topLevel.currentY = movingToY;
+                    game.tilesModel.currentX = movingToX;
+                    game.tilesModel.currentY = movingToY;
                     self.climbing = false;
                 } else {
                     // if we're running and we crash when trying to go to the second step, stop us on the first step instead
                     if(self.running) {
-                        self.topLevel.currentX = skippingX;
-                        self.topLevel.currentY = skippingY;
+                        game.tilesModel.currentX = skippingX;
+                        game.tilesModel.currentY = skippingY;
                         self.running = false;
                     }
                 }
@@ -120,8 +124,8 @@ var CommandProcessor = function(topLevel, keyProcessor, startTalkingToCallback) 
                 // they tried to move off the edge of the world <<madness>>
                 self.climbing = false;
                 if(self.running) {
-                    self.topLevel.currentX = skippingX;
-                    self.topLevel.currentY = skippingY;
+                    game.tilesModel.currentX = skippingX;
+                    game.tilesModel.currentY = skippingY;
                     self.running = false;
                 }
             }

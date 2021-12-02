@@ -35,19 +35,22 @@
         const KeyProcessingOptionMoving = "moving";
         const KeyProcessingOptionTalking = "talking";
 
-        var services = {
-            messageOutput: new MessageOutput(),
-            player: new PlayerModel()
-        };
+
         
-        
-        function GetService(serviceType) {
-            return services[serviceType];
+        var game = {
         };
 
         $(document).ready(function () {
 
             var model = new TilesModel();
+            game.tilesModel = model;
+            game.messageOutput = new MessageOutput();
+            game.player = new PlayerModel();
+            game.keyProcessor = new KeyProcessor();
+            game.talkingProcessor = new TalkingProcessor();
+            game.commandProcessor = new CommandProcessor();
+
+            model.Initialize();
         });
 
         var WeaponModel = function(name, damage, charge, value) {
@@ -92,7 +95,7 @@
         var TilesModel = function() {
             var self = this;
 
-            self.keyProcessor = new KeyProcessor(this);
+            self.keyProcessor = null; // new KeyProcessor(this);
 
             self.canvas = document.getElementById('canvas');
             self.ctx = self.canvas.getContext('2d');
@@ -176,8 +179,6 @@
                     }
                 }
             };
-
-            
 
             self.DrawLoop = function() {
                 //console.log("starting draw loop")
@@ -286,7 +287,7 @@
 
             self.ProcessKeyDown = function(event) {
                 //console.log(event.key);
-                self.keyProcessor.ProcessKeyPress(event);
+                game.keyProcessor.ProcessKeyPress(event);
             }
 
             self.Initialize = function() {
@@ -294,7 +295,6 @@
                 self.ResizeHandler();
                 // hook up resize handler
                 window.addEventListener('resize', self.ResizeHandler, false);
-                window.addEventListener('keydown', self.ProcessKeyDown, false);
                 // make some dummy tiles
                 self.GenerateTiles();
                 // figure out how many etc tiles we are drawing
@@ -305,8 +305,8 @@
                     //self.DrawLoop();
                     window.requestAnimationFrame(self.DrawLoop);
                 });
+                window.addEventListener('keydown', self.ProcessKeyDown, false);
             };
-            self.Initialize();
         };
     </script>
 </body>

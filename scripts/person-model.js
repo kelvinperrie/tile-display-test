@@ -26,8 +26,8 @@ var PersonModel = function(name, initialGreeting, wordTriggers, image, inventory
         if(itemNumber < 1 || itemNumber >= self.inventory.length+1) {
             return "Uh?";
         }
-        var player = GetService("player");
-        let response = player.Purchase(itemNumber, self);
+        //var player = GetService("player");
+        let response = game.player.Purchase(itemNumber, self);
         self.buying = false;
         return response;
     }

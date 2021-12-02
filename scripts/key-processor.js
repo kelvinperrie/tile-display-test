@@ -1,8 +1,10 @@
 
-var KeyProcessor = function(topLevel) {
+var KeyProcessor = function() {
     var self = this;
 
-    self.topLevel = topLevel;
+    // self.commandProcessor = GetService("commandProcessor");
+    // self.talkingProcessor = GetService("talkingProcessor");
+
     self.keyProcessingChoice = KeyProcessingOptionMoving;   // tracks what we're doing; moving or talking
 
     // the talking processor will call this function when the player stops talking to someone
@@ -15,17 +17,18 @@ var KeyProcessor = function(topLevel) {
     self.startTalkingTo = function(person) {
         person.inConversation = true;
         self.keyProcessingChoice = KeyProcessingOptionTalking;
-        self.talkingProcessor.SetPersonBeingTalkedTo(person);
+        game.talkingProcessor.SetPersonBeingTalkedTo(person);
     }
 
     self.ProcessKeyPress = function(event) {
         if(self.keyProcessingChoice == KeyProcessingOptionMoving) {
-            self.commandProcessor.ProcessKeyPress(event.key);
+            game.commandProcessor.ProcessKeyPress(event.key);
         } else if(self.keyProcessingChoice == KeyProcessingOptionTalking) {
-            self.talkingProcessor.ProcessKeyPress(event);
+            game.talkingProcessor.ProcessKeyPress(event);
         }
     }
 
-    self.commandProcessor = new CommandProcessor(self.topLevel, this, self.startTalkingTo);
-    self.talkingProcessor = new TalkingProcessor(self.topLevel, this, self.stopTalkingTo);
+    // self.commandProcessor = new CommandProcessor();
+    // self.talkingProcessor = new TalkingProcessor();
+
 }
