@@ -21,4 +21,12 @@ var PlayerModel = function() {
 
         return "It's yours!";
     };
+
+    self.GetInventory = function() {
+        let output = ["Your inventory is:"];
+        for(let i = 0; i < self.inventory.length; i++) {
+            output.push((i+1) + " " + self.inventory[i].BuyDescription());
+        }
+        return output;
+    };
 };

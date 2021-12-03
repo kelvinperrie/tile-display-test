@@ -161,6 +161,9 @@
                         }
 
                         var person = new PersonModel(tile.person.name, tile.person.intro, tile.person.talkTriggers, tile.person.image, inventory);
+                        if("buyer" in tile.person) {
+                            person.buyer = tile.person;
+                        }
                         self.rows[tile.x][tile.y].person = person;
                     }
                 }

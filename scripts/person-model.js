@@ -5,6 +5,8 @@ var PersonModel = function(name, initialGreeting, wordTriggers, image, inventory
     self.initialGreeting = initialGreeting;
     self.wordTriggers = wordTriggers;
     self.image = image;
+    self.buyer = false;                         // flag indicating if this person buy things from the player
+    self.selling = false;                       // track if the player has said they want to sell
     self.buying = false;                        // track if the player has said they want to buy
     self.inventory = inventory;
     self.confusedResponses = ["Uuuhh ...", "...", "Sorry?", "I don't know anything about that"];
@@ -18,6 +20,7 @@ var PersonModel = function(name, initialGreeting, wordTriggers, image, inventory
     self.CanTalkTo = function() {
         return self.wordTriggers!==null;
     }
+    // the player is trying to purchase something from this person
     self.TryToPurchase = function(itemNumber) {
         console.log("trying to purchase item " + itemNumber);
         if(isNaN(itemNumber)) {
@@ -31,14 +34,35 @@ var PersonModel = function(name, initialGreeting, wordTriggers, image, inventory
         self.buying = false;
         return response;
     }
+    // the player is trying to sell to this person
+    self.TryToSell = function() {
+
+        self.selling = false;
+        return "I haven't coded this yet :(";
+    }
     self.Ask = function(trigger) {
         if(self.buying) {
             return self.TryToPurchase(trigger);
         }
-        if(trigger.toLowerCase() === 'buy') {
+        if(self.selling) {
+            return self.TryToSell();
+        }
+        if(trigger.toLowerCase() === 'buy') {       // the player wants to buy some stuff
             // todo not everyone will be selling
             self.buying = true;
             return self.GetInventory();
+        }
+        if(trigger.toLowerCase() === 'sell') {      // the player wants to sell some stuff
+            if(self.buyer) {
+                self.selling = true;
+                // show the players inventory
+                if(game.player.inventory.length === 0) {
+                    return "You don't have anything to sell."
+                }
+                let output = ["What do you want to sell?"];
+                
+                return output.concat(game.player.GetInventory());
+            }
         }
         if(!trigger || !self.wordTriggers) return null;
         let triggers = trigger.split(" ");
@@ -60,7 +84,10 @@ var PersonModel = function(name, initialGreeting, wordTriggers, image, inventory
     }
 
     self.GetInventory = function() {
-        if(!self.inventory || self.inventory.length === 0) return "I haven't got anything.";
+        if(!self.inventory || self.inventory.length === 0) { 
+            self.buying = false;
+            return "I haven't got anything.";
+        }
         let output = ["This is what I have:"];
         for(let i = 0; i < self.inventory.length; i++) {
             output.push((i+1) + " " + self.inventory[i].BuyDescription());
