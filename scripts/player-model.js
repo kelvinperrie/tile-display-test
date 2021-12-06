@@ -34,8 +34,17 @@ var PlayerModel = function() {
         return "Thanks!";
     };
 
-    self.GetInventory = function() {
+    self.OutputInventory = function() {
         let output = ["Your inventory is:"];
+        output = output.concat(self.GetInventory());
+        if(output.length === 1) {
+            output[0] = "You've got nothing in your inventory."
+        }
+        game.messageOutput.Output(output);
+    };
+    self.GetInventory = function() {
+        let output = [];
+        
         for(let i = 0; i < self.inventory.length; i++) {
             output.push((i+1) + " " + self.inventory[i].BuyDescription());
         }

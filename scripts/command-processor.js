@@ -95,6 +95,8 @@ var CommandProcessor = function() {
             self.talking = true;
             self.running = false;
             self.climbing = false;
+        } else if(key === 'i') {
+            game.player.OutputInventory();
         }
 
         // if the key press was intended to generate movement then we see if can move
