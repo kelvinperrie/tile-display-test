@@ -23,6 +23,7 @@ var PersonModel = function(name, initialGreeting, wordTriggers, image, inventory
     // the player is trying to purchase something from this person
     self.TryToPurchase = function(itemNumber) {
         console.log("trying to purchase item " + itemNumber);
+        self.buying = false;
         if(isNaN(itemNumber)) {
             return "What?";
         }
@@ -31,21 +32,23 @@ var PersonModel = function(name, initialGreeting, wordTriggers, image, inventory
         }
         //var player = GetService("player");
         let response = game.player.Purchase(itemNumber, self);
-        self.buying = false;
         return response;
     }
     // the player is trying to sell to this person
-    self.TryToSell = function() {
+    self.TryToSell = function(itemNumber) {
 
         self.selling = false;
-        return "I haven't coded this yet :(";
+
+        let response = game.player.Sell(itemNumber);
+        return response;
+
     }
     self.Ask = function(trigger) {
         if(self.buying) {
             return self.TryToPurchase(trigger);
         }
         if(self.selling) {
-            return self.TryToSell();
+            return self.TryToSell(trigger);
         }
         if(trigger.toLowerCase() === 'buy') {       // the player wants to buy some stuff
             // todo not everyone will be selling
