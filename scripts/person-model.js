@@ -98,4 +98,27 @@ var PersonModel = function(name, initialGreeting, wordTriggers, image, inventory
         output.push("What number do you want to buy?");
         return output;
     }
+
+    self.Serialize = function() {
+        var person = self;
+        var talkTriggersText = "talkTriggers:";
+        // talkTriggers: [{ trigger : "test", response: "Yeah, your test worked :)" },{ trigger : "second", response: "Your second test is ok" }],
+        talkTriggersText += JSON.stringify(person.wordTriggers);
+        talkTriggersText += "";
+
+        var inventoryText = "inventory:[";
+        for(var i =0;i < person.inventory.length; i++) {
+            var invItem = person.inventory[i].Serialize();
+            if(i > 0) {
+                inventoryText += ","+ invItem;
+            } else {
+                inventoryText +=  invItem;
+            }
+        }
+        inventoryText += "]";
+
+        personText = `{name:"${person.name}",intro:"${person.initialGreeting}",${talkTriggersText},image:${person.image},${inventoryText}}`;
+
+        return personText;
+    };
 };

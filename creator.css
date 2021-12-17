@@ -1,0 +1,14 @@
+.creator-container{
+    position: absolute;
+    background-color: burlywood;
+    right: 0;
+    top: 0;
+    margin: 5px;
+    padding: 5px;
+}
+.available-tile {
+    display: inline-block;
+}
+.selected-tile {
+    border: 1px solid yellow;
+}

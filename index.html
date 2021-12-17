@@ -3,6 +3,7 @@
 <head>
     <title>ttt</title>
     <meta charset="utf-8"/>
+    <link rel="stylesheet" href="creator.css" />
     <style type="text/css">
         body {
             font-family: "Fira", Helvetica, Arial, sans-serif;
@@ -22,7 +23,19 @@
 <body onload="">
     <canvas id="canvas" ></canvas>
 
+    <div class="creator-container">
+        <!-- ko foreach: availableTiles -->
+        <div class="available-tile" data-bind="click : function() { $parent.SetSelectedAvailableTile($data); }, attr: { class: $parent.selectedAvailableTileImage() == image ?'available-tile selected-tile':'available-tile' }">
+            <img src="" data-bind="attr: {src: 'images/' + image}" />
+        </div>
+        <!-- /ko -->
+        <div>
+            <div class="creator-command" data-bind="click: GenerateMapJson">output map json</div>
+        </div>
+    </div>
+
     <script src="scripts/jquery-3.3.1.min.js" type="text/javascript"></script>
+    <script src="scripts/knockout-3.5.1.js" type="text/javascript"></script>
     <script src="scripts/utility.js" type="text/javascript"></script>
     <script src="scripts/map-city.js" type="text/javascript"></script>
     <script src="scripts/key-processor.js" type="text/javascript"></script>
@@ -31,12 +44,14 @@
     <script src="scripts/person-model.js" type="text/javascript"></script>
     <script src="scripts/player-model.js" type="text/javascript"></script>
     <script src="scripts/message-output.js" type="text/javascript"></script>
+    <script src="scripts/creator-model.js" type="text/javascript"></script>
     <script type="text/javascript">
+
+        var vm = new CreatorModel();
+        ko.applyBindings(vm);
 
         const KeyProcessingOptionMoving = "moving";
         const KeyProcessingOptionTalking = "talking";
-
-
         
         var game = {
         };
@@ -50,6 +65,7 @@
             game.keyProcessor = new KeyProcessor();
             game.talkingProcessor = new TalkingProcessor();
             game.commandProcessor = new CommandProcessor();
+            //game.creator = new CreatorModel();
 
             model.Initialize();
         });
@@ -65,6 +81,11 @@
             self.BuyDescription = function() {
                 return self.name + "(" + self.damage + " dmg) with " + self.charge + " charge, costs " + self.value + " creds."
             };
+
+            self.Serialize = function() {
+                //name: "Blaster", type: "weapon", damage: 5, charge: 20, cost: 5
+                return `{name: "${self.name}", type:"weapon", damage:${self.damage}, charge:${self.charge}, cost:${self.value}}`;
+            }
         }
 
 
@@ -91,8 +112,6 @@
         };
 
 
-       
-
         var TilesModel = function() {
             var self = this;
 
@@ -116,8 +135,8 @@
             self.currentY = 3;
             self.centerTileAtX = 0;     // where to start drawing the center tile (the coordinates on the canvas)
             self.centerTileAtY = 0;
-            self.maxX = 1000;
-            self.maxY = 1000;
+            self.maxX = 500;
+            self.maxY = 500;
 
 
             self.LoadMap = function(mapToLoad) {
@@ -141,8 +160,10 @@
 
                 for(var i = 0; i < map.tiles.length; i++) {
                     var tile = map.tiles[i];
+                    self.rows[tile.x][tile.y].hasDefinition = true;
                     if(tile.image) {
                         self.rows[tile.x][tile.y].image = tile.image;
+                        self.rows[tile.x][tile.y].imageSet = true;
                     }
                     if("passable" in tile) {
                         self.rows[tile.x][tile.y].passable = tile.passable;
